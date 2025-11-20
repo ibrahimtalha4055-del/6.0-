@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Acil Sağlık Sistemi V6.0 (Titan)</title>
+    <style>
+        /* --- MODERN VE GARANTİ TASARIM --- */
+        :root {
+            --red: #ff3b30;
+            --blue: #007aff;
+            --dark: #1c1c1e;
+            --gray: #f2f2f7;
+            --white: #ffffff;
+        }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background-color: var(--gray); 
+            margin: 0; padding: 0; 
+            color: #000;
+        }
+
+        .app { 
+            max-width: 500px; 
+            margin: 0 auto; 
+            background: var(--white); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* GİZLEME MEKANİZMASI */
+        .hidden { display: none !important; }
+
+        /* --- 1. PROFİL KARTI --- */
+        .header {
+            background: linear-gradient(180deg, #2c3e50, #000000);
+            color: white;
+            padding: 40px 20px 30px;
+            text-align: center;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+        }
+        .avatar {
+            width: 120px; height: 120px; 
+            border-radius: 50%; border: 4px solid white;
+            background: #ddd; object-fit: cover;
+            margin-bottom: 10px;
+        }
+        .tag {
+            background: var(--red); color: white; 
+            padding: 5px 15px; border-radius: 15px; 
+            font-size: 12px; font-weight: bold; text-transform: uppercase;
+        }
+        
+        .content { padding: 20px; flex: 1; }
+
+        .btn {
+            width: 100%; padding: 18px; border: none; border-radius: 15px;
+            font-size: 16px; font-weight: bold; color: white;
+            cursor: pointer; margin-bottom: 15px; display: flex; 
+            justify-content: center; align-items: center; gap: 10px;
+            text-decoration: none; transition: 0.1s;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-ai { background: linear-gradient(45deg, #007aff, #5856d6); }
+        .btn-save { background: #34c759; }
+        .btn-back { background: #8e8e93; }
+        .btn-login { background: #2c3e50; }
+
+        .info-box {
+            background: #f9f9f9; border-radius: 12px; padding: 15px;
+            margin-bottom: 10px; border-left: 5px solid var(--blue);
+        }
+        .info-box.alert { border-left-color: var(--red); background: #fff5f5; }
+        .info-label { font-size: 11px; color: #888; font-weight: 800; }
+        .info-val { font-size: 17px; font-weight: 600; margin-top: 4px; }
+
+        /* Aile Butonları */
+        .fam-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .fam-btn {
+            background: #eee; padding: 15px; border-radius: 12px;
+            text-align: center; text-decoration: none; color: #333;
+            font-weight: 600; font-size: 13px; display: block;
+        }
+
+        /* --- 2. AI EKRANI --- */
+        .chat-area { flex: 1; overflow-y: auto; padding: 15px; background: #f4f4f4; border-radius: 15px; margin-bottom: 15px; height: 50vh; }
+        .msg { padding: 12px 16px; border-radius: 20px; margin-bottom: 10px; max-width: 85%; font-size: 15px; line-height: 1.4; }
+        .bot { background: white; align-self: flex-start; border: 1px solid #ddd; }
+        .user { background: var(--blue); color: white; margin-left: auto; }
+        .opt-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .opt-btn { flex: 1 1 45%; padding: 12px; background: white; border: 1px solid var(--blue); color: var(--blue); border-radius: 20px; font-weight: 600; }
+
+        /* --- 3. ŞİFRE EKRANI --- */
+        .login-box {
+            text-align: center; padding: 40px 20px;
+            display: flex; flex-direction: column; justify-content: center; height: 80vh;
+        }
+        .pass-input {
+            width: 100%; padding: 15px; font-size: 20px; text-align: center;
+            border: 2px solid #ddd; border-radius: 12px; margin-bottom: 20px;
+        }
+
+        /* --- 4. ADMIN FORMU --- */
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; }
+        .form-control { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; background: white; }
+    </style>
+</head>
+<body>
+
+<div class="app">
+
+    <div id="page-view">
+        <div class="header">
+            <img id="v-img" src="https://ui-avatars.com/api/?name=A+K&background=random&size=150" class="avatar">
+            <h1 id="v-name">Yükleniyor...</h1>
+            <div id="v-disease" class="tag">...</div>
+        </div>
+
+        <div class="content">
+            <button onclick="Router.go('ai')" class="btn btn-ai">
+                🤖 ACİL DURUM ASİSTANI
+            </button>
+
+            <div class="info-box">
+                <div class="info-label">KAN GRUBU</div>
+                <div id="v-blood" class="info-val">...</div>
+            </div>
+
+            <div class="info-box alert">
+                <div class="info-label">⚠️ KRİTİK ALERJİLER</div>
+                <div id="v-allergy" class="info-val">...</div>
+            </div>
+
+            <div class="info-box">
+                <div class="info-label">İLAÇLAR</div>
+                <div id="v-meds" class="info-val">...</div>
+            </div>
+
+            <div class="info-label" style="margin-top: 20px;">AİLE İLETİŞİM</div>
+            <div id="v-family" class="fam-grid"></div>
+
+            <div style="text-align: center; margin-top: 40px;">
+                <button onclick="Router.go('login')" style="background:none; border:none; color:#999; text-decoration:underline; font-size:14px;">🔒 Yönetici Girişi</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-login" class="hidden">
+        <div class="login-box">
+            <h2>Yönetici Girişi</h2>
+            <p style="color:#666; margin-bottom: 20px;">Bilgileri düzenlemek için şifreyi girin.</p>
+            
+            <input type="password" id="password-field" class="pass-input" placeholder="Şifre">
+            
+            <button onclick="Admin.checkPass()" class="btn btn-login">GİRİŞ YAP</button>
+            <button onclick="Router.go('view')" class="btn btn-back">İPTAL</button>
+        </div>
+    </div>
+
+    <div id="page-admin" class="hidden">
+        <div class="header" style="padding: 20px; border-radius: 0; background: #2c3e50;">
+            <h2 style="margin:0; font-size: 20px;">⚙️ Veri Düzenle</h2>
+        </div>
+        <div class="content">
+            <div class="form-group"><label class="form-label">Ad Soyad</label><input id="i-name" class="form-control" type="text"></div>
+            <div class="form-group"><label class="form-label">Fotoğraf Linki</label><input id="i-img" class="form-control" type="text" placeholder="https://..."></div>
+            <div class="form-group"><label class="form-label">Kan Grubu</label><input id="i-blood" class="form-control" type="text"></div>
+            
+            <div class="form-group">
+                <label class="form-label">Hastalık Seçimi</label>
+                <select id="i-disease" class="form-control"></select>
+            </div>
+
+            <div class="form-group"><label class="form-label">Alerjiler</label><textarea id="i-allergy" class="form-control" rows="2"></textarea></div>
+            <div class="form-group"><label class="form-label">İlaçlar</label><textarea id="i-meds" class="form-control" rows="2"></textarea></div>
+
+            <div class="info-label" style="margin: 15px 0;">AİLE NUMARALARI (+90...)</div>
+            <div class="form-group"><label class="form-label">Baba</label><input id="i-dad" class="form-control" type="tel"></div>
+            <div class="form-group"><label class="form-label">Anne</label><input id="i-mom" class="form-control" type="tel"></div>
+            <div class="form-group"><label class="form-label">Erkek Kardeş</label><input id="i-bro" class="form-control" type="tel"></div>
+            <div class="form-group"><label class="form-label">Kız Kardeş</label><input id="i-sis" class="form-control" type="tel"></div>
+
+            <button onclick="Admin.save()" class="btn btn-save">KAYDET</button>
+        </div>
+    </div>
+
+    <div id="page-ai" class="hidden">
+        <div class="header" style="padding: 20px; border-radius: 0; background: #007aff;">
+            <h2 style="margin:0; font-size: 20px;">🤖 Akıllı Asistan</h2>
+        </div>
+        <div class="content" style="display: flex; flex-direction: column;">
+            <div id="chat-history" class="chat-area"></div>
+            <div id="chat-options" class="opt-grid"></div>
+            <button onclick="Router.go('view')" class="btn btn-back" style="margin-top: auto;">ÇIKIŞ</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// --- HASTALIK VERİTABANI (ÖZET) ---
+const DB = [
+    {id:"EPIL", cat:"NEURO", name:"Epilepsi (Sara)"},
+    {id:"DIY1", cat:"META", name:"Tip 1 Diyabet"},
+    {id:"DIY2", cat:"META", name:"Tip 2 Diyabet"},
+    {id:"KALP", cat:"HEART", name:"Kalp Hastası"},
+    {id:"ASTIM", cat:"RESP", name:"Astım / KOAH"},
+    {id:"ARI", cat:"ALLERGY", name:"Alerji: Arı Sokması"},
+    {id:"FISTIK", cat:"ALLERGY", name:"Alerji: Fıstık"},
+    {id:"GENEL", cat:"GENEL", name:"Diğer / Bilinmiyor"}
+];
+
+// --- UYGULAMA ÇEKİRDEĞİ ---
+const App = {
+    data: {},
+    
+    init: function() {
+        try {
+            const raw = localStorage.getItem('HealthID_V6');
+            this.data = raw ? JSON.parse(raw) : this.defaults();
+        } catch(e) {
+            this.data = this.defaults();
+        }
+        
+        this.populateSelect();
+        this.renderView();
+
+        // URL'de admin varsa otomatik login ekranına at
+        if(window.location.search.includes('mode=admin')) {
+            Router.go('login');
+        }
+    },
+
+    defaults: function() {
+        return {
+            name: "Bilgi Girilmedi",
+            img: "https://ui-avatars.com/api/?name=H+K&background=random&color=fff&size=150",
+            blood: "-",
+            disease: "EPIL",
+            allergy: "Yok",
+            meds: "Yok",
+            phones: { dad:"", mom:"", bro:"", sis:"" }
+        }
+    },
+
+    populateSelect: function() {
+        const s = document.getElementById('i-disease');
+        s.innerHTML = "";
+        DB.forEach(d => {
+            s.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+        });
+    },
+
+    renderView: function() {
+        const d = this.data;
+        const dis = DB.find(x => x.id === d.disease) || DB[0];
+
+        document.getElementById('v-name').innerText = d.name;
+        document.getElementById('v-img').src = d.img;
+        document.getElementById('v-disease').innerText = dis.name;
+        document.getElementById('v-blood').innerText = d.blood;
+        document.getElementById('v-allergy').innerText = d.allergy;
+        document.getElementById('v-meds').innerText = d.meds;
+
+        const fam = document.getElementById('v-family');
+        fam.innerHTML = "";
+        const labels = { dad:"BABA", mom:"ANNE", bro:"KARDEŞ(E)", sis:"KARDEŞ(K)" };
+        
+        let count = 0;
+        for(let k in d.phones) {
+            if(d.phones[k].length > 2) {
+                count++;
+                fam.innerHTML += `<a href="tel:${d.phones[k]}" class="fam-btn">📞 ${labels[k]}</a>`;
+            }
+        }
+        if(count===0) fam.innerHTML = "<div style='grid-column:span 2; text-align:center; color:#999;'>Numara yok.</div>";
+    }
+};
+
+// --- SAYFA YÖNETİCİSİ (ROUTER) ---
+const Router = {
+    go: function(pageId) {
+        document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+        document.getElementById('page-' + pageId).classList.remove('hidden');
+        window.scrollTo(0,0);
+        
+        if(pageId === 'ai') AI.start();
+    }
+};
+
+// --- ADMIN MODÜLÜ ---
+const Admin = {
+    checkPass: function() {
+        const pass = document.getElementById('password-field').value;
+        if(pass === "01Talha55") {
+            this.loadForm();
+            Router.go('admin');
+        } else {
+            alert("Hatalı Şifre!");
+        }
+    },
+
+    loadForm: function() {
+        const d = App.data;
+        document.getElementById('i-name').value = d.name;
+        document.getElementById('i-img').value = d.img;
+        document.getElementById('i-blood').value = d.blood;
+        document.getElementById('i-disease').value = d.disease;
+        document.getElementById('i-allergy').value = d.allergy;
+        document.getElementById('i-meds').value = d.meds;
+        document.getElementById('i-dad').value = d.phones.dad;
+        document.getElementById('i-mom').value = d.phones.mom;
+        document.getElementById('i-bro').value = d.phones.bro;
+        document.getElementById('i-sis').value = d.phones.sis;
+    },
+
+    save: function() {
+        const newData = {
+            name: document.getElementById('i-name').value,
+            img: document.getElementById('i-img').value,
+            blood: document.getElementById('i-blood').value,
+            disease: document.getElementById('i-disease').value,
+            allergy: document.getElementById('i-allergy').value,
+            meds: document.getElementById('i-meds').value,
+            phones: {
+                dad: document.getElementById('i-dad').value,
+                mom: document.getElementById('i-mom').value,
+                bro: document.getElementById('i-bro').value,
+                sis: document.getElementById('i-sis').value
+            }
+        };
+        localStorage.setItem('HealthID_V6', JSON.stringify(newData));
+        App.data = newData;
+        App.renderView();
+        alert("Bilgiler Kaydedildi!");
+        Router.go('view');
+    }
+};
+
+// --- YAPAY ZEKA (AI) ---
+const AI = {
+    start: function() {
+        const hist = document.getElementById('chat-history');
+        hist.innerHTML = "";
+        const dis = DB.find(x => x.id === App.data.disease) || DB[0];
+        
+        this.botType(`Merhaba. Ben AI Asistan. Hasta tanısı: <b>${dis.name}</b>. Şu an ne görüyorsunuz?`, () => {
+            if(dis.cat === "NEURO") this.flowNeuro();
+            else if(dis.cat === "META") this.flowMeta();
+            else if(dis.cat === "HEART") this.flowHeart();
+            else if(dis.cat === "RESP") this.flowResp();
+            else if(dis.cat === "ALLERGY") this.flowAllergy();
+            else this.flowGeneral();
+        });
+    },
+
+    botType: function(msg, callback) {
+        const hist = document.getElementById('chat-history');
+        const div = document.createElement('div');
+        div.className = 'msg bot';
+        div.innerHTML = "<i>Yazıyor...</i>";
+        hist.appendChild(div);
+        hist.scrollTop = hist.scrollHeight;
+
+        setTimeout(() => {
+            div.innerHTML = msg;
+            if(callback) callback();
+        }, 600);
+    },
+
+    userSay: function(msg) {
+        const hist = document.getElementById('chat-history');
+        hist.innerHTML += `<div class="msg user">${msg}</div>`;
+        hist.scrollTop = hist.scrollHeight;
+    },
+
+    ask: function(opts) {
+        const div = document.getElementById('chat-options');
+        div.innerHTML = "";
+        opts.forEach(o => {
+            let b = document.createElement('button');
+            b.className = 'opt-btn';
+            b.innerText = o.txt;
+            b.onclick = () => {
+                this.userSay(o.txt);
+                div.innerHTML = "";
+                o.act();
+            }
+            div.appendChild(b);
+        });
+    },
+
+    emergency: function(text) {
+        const hist = document.getElementById('chat-history');
+        hist.innerHTML += `<div style="background:#ff3b30; color:white; padding:15px; border-radius:15px; text-align:center; margin-top:10px;">
+            🚨 <b>ACİL DURUM:</b> ${text}<br>
+            <a href="tel:112" style="color:white; font-size:24px; font-weight:900; display:block; margin-top:5px; text-decoration:none;">📞 112 ARA</a>
+        </div>`;
+        hist.scrollTop = hist.scrollHeight;
+    },
+
+    // SENARYOLAR
+    flowNeuro: function() {
+        this.ask([
+            {txt:"Nöbet Var", act:() => {
+                this.botType("⚠️ Başını koruyun. Etrafı açın. <b>AĞZINI AÇMAYIN!</b>", () => {
+                    setTimeout(() => {
+                        this.botType("Nöbet 5 dk'yı geçti mi?", () => {
+                            this.ask([
+                                {txt:"Evet", act:() => this.emergency("Uzamış Nöbet")},
+                                {txt:"Hayır", act:() => this.botType("✅ Yan çevirin, başında bekleyin.")}
+                            ]);
+                        });
+                    }, 2000);
+                });
+            }},
+            {txt:"Baygın", act:() => {
+                this.botType("Nefes alıyor mu?");
+                this.ask([
+                    {txt:"Evet", act:() => this.botType("✅ Yan çevirin (Koma pozisyonu).")},
+                    {txt:"Hayır", act:() => this.emergency("Solunum Durması")}
+                ]);
+            }}
+        ]);
+    },
+    
+    flowMeta: function() {
+        this.ask([
+            {txt:"Bilinç Açık", act:() => {
+                this.botType("Titreme, terleme var mı?", () => {
+                    this.ask([
+                        {txt:"Evet", act:() => this.botType("🍬 <b>ŞEKER VERİN:</b> Meyve suyu/küp şeker.")},
+                        {txt:"Hayır", act:() => this.botType("Dinlendirin, şeker ölçün.")}
+                    ]);
+                });
+            }},
+            {txt:"Bilinç Kapalı", act:() => {
+                this.botType("⛔ <b>AĞIZDAN BİR ŞEY VERMEYİN!</b>");
+                this.emergency("Diyabetik Koma");
+            }}
+        ]);
+    },
+
+    flowHeart: function() {
+        this.ask([
+            {txt:"Göğüs Ağrısı", act:() => {
+                this.botType("❤️ Yarı oturur pozisyona getirin. Kravatı gevşetin. Aspirin verin.");
+                this.emergency("Kalp Krizi Şüphesi");
+            }},
+            {txt:"Baygınlık", act:() => this.botType("Sırt üstü yatırıp ayaklarını 30cm kaldırın.")}
+        ]);
+    },
+
+    flowResp: function() {
+        this.botType("Nefes darlığı şiddetli mi?", () => {
+            this.ask([
+                {txt:"Evet / Tıkanıyor", act:() => {
+                    this.botType("💨 İnhaler (fısfıs) ilacı varsa kullandırın.");
+                    this.emergency("Solunum Yetmezliği");
+                }},
+                {txt:"Hafif", act:() => this.botType("Dik oturtun, sakinleştirin.")}
+            ]);
+        });
+    },
+
+    flowAllergy: function() {
+        this.botType("Nefes darlığı / yüzde şişme var mı?", () => {
+            this.ask([
+                {txt:"Evet", act:() => {
+                    this.botType("💉 <b>ANAFİLAKSİ!</b> Varsa EpiPen yapın.");
+                    this.emergency("Alerjik Şok");
+                }},
+                {txt:"Hayır", act:() => this.botType("Alerji ilacı verin, gözlemleyin.")}
+            ]);
+        });
+    },
+
+    flowGeneral: function() {
+        this.botType("Durum nedir?", () => {
+            this.ask([
+                {txt:"Bilinçsiz", act:() => {
+                    this.botType("Nefes yoksa kalp masajına başlayın.");
+                    this.emergency("Bilinç Kaybı");
+                }},
+                {txt:"Kanama", act:() => {
+                    this.botType("🩸 Yaraya temiz bezle BASTIRIN.");
+                    this.emergency("Ciddi Kanama");
+                }}
+            ]);
+        });
+    }
+};
+
+// BAŞLAT
+App.init();
+
+</script>
+</body>
+</html>
